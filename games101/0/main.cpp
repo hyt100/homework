@@ -39,10 +39,49 @@ int main(){
     // matrix output
     std::cout << "Example of output \n";
     std::cout << i << std::endl;
+    std::cout << j << std::endl;
     // matrix add i + j
+    std::cout << i + j << std::endl;
     // matrix scalar multiply i * 2.0
+    std::cout << i * 2.0 << std::endl;
     // matrix multiply i * j
+    std::cout << i * j << std::endl;
     // matrix multiply vector i * v
+    std::cout << i * v << std::endl;
+
+    // others
+    std::cout << "Example of others \n";
+    std::cout << v.dot(w) << std::endl;
+    std::cout << w.dot(v) << std::endl;
+
+    v.normalize();
+
+    std::cout << v.cross(w) << std::endl;
+    std::cout << w.cross(v) << std::endl;
+
+    Eigen::Matrix3f mat = Eigen::Matrix3f::Identity();
+    std::cout << mat << std::endl;
+
+    Eigen::AngleAxisf r(M_PI / 2, Eigen::Vector3f(1.0, 0.0, 0.0));
+    std::cout << r.toRotationMatrix() << std::endl;
+    // std::cout << r.inverse().matrix() << std::endl;
+    // std::cout << r.matrix() << std::endl;
+
+    // Eigen::Quaternionf q0 = Eigen::Quaternionf::Identity();
+    // std::cout << q0.coeffs() << std::endl;
+    Eigen::Quaternionf q(r);
+    // std::cout << q.coeffs() << std::endl;
+    std::cout << q.toRotationMatrix() << std::endl;
+    std::cout << q.norm() << std::endl;
+    // std::cout << q.matrix().inverse() << std::endl;
+    // std::cout << q.inverse().coeffs() << std::endl;
+    std::cout << q.conjugate().matrix() << std::endl;
+
+    Eigen::Matrix4f m1 = Eigen::Matrix4f::Identity();
+    Eigen::Matrix3f m2;
+    m2 << 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0;
+    m1.block<3, 3>(0, 0) = m2;
+    std::cout << m1 << std::endl;
 
     return 0;
 }

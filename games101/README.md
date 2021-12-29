@@ -1,7 +1,7 @@
 ## GAMES101 Homework
 
-- [ ] HW0 - 设置环境 
-- [ ] HW1 - 旋转、透视投影矩阵
+- [x] HW0 - 设置环境 
+- [x] HW1 - 旋转、透视投影矩阵
 - [ ] HW2 - Rasterization
 - [ ] HW3 - Rasterization Adv. 
 - [ ] HW4 - Bezier曲线
