@@ -8,9 +8,9 @@
 
 
 Triangle::Triangle() {
-    v[0] << 0,0,0;
-    v[1] << 0,0,0;
-    v[2] << 0,0,0;
+    v[0] << 0,0,0,1;
+    v[1] << 0,0,0,1;
+    v[2] << 0,0,0,1;
 
     color[0] << 0.0, 0.0, 0.0;
     color[1] << 0.0, 0.0, 0.0;
@@ -21,7 +21,7 @@ Triangle::Triangle() {
     tex_coords[2] << 0.0, 0.0;
 }
 
-void Triangle::setVertex(int ind, Vector3f ver){
+void Triangle::setVertex(int ind, Vector4f ver){
     v[ind] = ver;
 }
 void Triangle::setNormal(int ind, Vector3f n){

@@ -33,6 +33,14 @@ Eigen::Matrix4f get_projection_matrix(float eye_fov, float aspect_ratio, float z
     // TODO: Copy-paste your implementation from the previous assignment.
     Eigen::Matrix4f projection;
 
+    eye_fov = eye_fov * MY_PI / 180;
+    float fov_tan = std::tan(eye_fov);
+    projection(0, 0) = 1.0 / (aspect_ratio * fov_tan);
+    projection(1, 1) = 1.0 / fov_tan;
+    projection(2, 2) = (zNear + zFar) / (zNear - zFar);
+    projection(2, 3) = -1.0;
+    projection(3, 2) = 2.0 * zFar * zNear / (zNear - zFar);
+
     return projection;
 }
 
@@ -50,7 +58,7 @@ int main(int argc, const char** argv)
 
     rst::rasterizer r(700, 700);
 
-    Eigen::Vector3f eye_pos = {0,0,5};
+    Eigen::Vector3f eye_pos = {0,0,10};
 
 
     std::vector<Eigen::Vector3f> pos
@@ -96,7 +104,7 @@ int main(int argc, const char** argv)
 
         r.draw(pos_id, ind_id, col_id, rst::Primitive::Triangle);
         cv::Mat image(700, 700, CV_32FC3, r.frame_buffer().data());
-        image.convertTo(image, CV_8UC3, 1.0f);
+        image.convertTo(image, CV_8UC3, 255.0f);
         cv::cvtColor(image, image, cv::COLOR_RGB2BGR);
 
         cv::imwrite(filename, image);
@@ -115,7 +123,7 @@ int main(int argc, const char** argv)
         r.draw(pos_id, ind_id, col_id, rst::Primitive::Triangle);
 
         cv::Mat image(700, 700, CV_32FC3, r.frame_buffer().data());
-        image.convertTo(image, CV_8UC3, 1.0f);
+        image.convertTo(image, CV_8UC3, 255.0f);
         cv::cvtColor(image, image, cv::COLOR_RGB2BGR);
         cv::imshow("image", image);
         key = cv::waitKey(10);
