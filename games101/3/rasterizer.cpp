@@ -170,20 +170,38 @@ static std::tuple<float, float, float> computeBarycentric2D(float x, float y, co
     return {c1,c2,c3};
 }
 
+void rst::rasterizer::GetBoundingBox(Eigen::Vector2i &min, Eigen::Vector2i &max, const Triangle& t)
+{
+    float min_x = std::min(t.v[0].x(), std::min(t.v[1].x(), t.v[2].x()));
+    float max_x = std::max(t.v[0].x(), std::max(t.v[1].x(), t.v[2].x()));
+
+    float min_y = std::min(t.v[0].y(), std::min(t.v[1].y(), t.v[2].y()));
+    float max_y = std::max(t.v[0].y(), std::max(t.v[1].y(), t.v[2].y()));
+
+    min.x() = static_cast<int>(min_x);
+    min.y() = static_cast<int>(min_y);
+
+    max.x() = std::clamp(static_cast<int>(std::ceil(max_x)), 0, width - 1);
+    max.y() = std::clamp(static_cast<int>(std::ceil(max_y)), 0, height - 1);
+}
+
 void rst::rasterizer::draw(std::vector<Triangle *> &TriangleList) {
 
     float f1 = (50 - 0.1) / 2.0;
     float f2 = (50 + 0.1) / 2.0;
 
     Eigen::Matrix4f mvp = projection * view * model;
+    Eigen::Matrix4f mv = view * model;
+    Eigen::Matrix4f normal_trans = mv.inverse().transpose();
+
     for (const auto& t:TriangleList)
     {
         Triangle newtri = *t;
 
         std::array<Eigen::Vector4f, 3> mm {
-                (view * model * t->v[0]),
-                (view * model * t->v[1]),
-                (view * model * t->v[2])
+                (mv * t->v[0]),
+                (mv * t->v[1]),
+                (mv * t->v[2])
         };
 
         std::array<Eigen::Vector3f, 3> viewspace_pos;
@@ -204,11 +222,10 @@ void rst::rasterizer::draw(std::vector<Triangle *> &TriangleList) {
             vec.z()/=vec.w();
         }
 
-        Eigen::Matrix4f inv_trans = (view * model).inverse().transpose();
         Eigen::Vector4f n[] = {
-                inv_trans * to_vec4(t->normal[0], 0.0f),
-                inv_trans * to_vec4(t->normal[1], 0.0f),
-                inv_trans * to_vec4(t->normal[2], 0.0f)
+                normal_trans * to_vec4(t->normal[0], 0.0f),
+                normal_trans * to_vec4(t->normal[1], 0.0f),
+                normal_trans * to_vec4(t->normal[2], 0.0f)
         };
 
         //Viewport transformation
@@ -256,6 +273,45 @@ static Eigen::Vector2f interpolate(float alpha, float beta, float gamma, const E
     return Eigen::Vector2f(u, v);
 }
 
+float GetViewSpaceZ(float alpha, float beta, float gamma, const Eigen::Vector3f &viewspace_triange_z)
+{
+    return 1.0 / (alpha / viewspace_triange_z[0] + beta / viewspace_triange_z[1] + gamma / viewspace_triange_z[2]);
+}
+
+float InterpolateAttr(float alpha, float beta, float gamma, float view_z, const Eigen::Vector3f &view_pos_z, const Eigen::Vector3f &attr)
+{
+    return view_z * (alpha*attr[0] / view_pos_z[0] +
+                     beta*attr[1]  / view_pos_z[1] +
+                     gamma*attr[2] / view_pos_z[2]);
+}
+
+Eigen::Vector2f GetAttr2(float alpha, float beta, float gamma, float view_z, const Eigen::Vector3f &view_pos_z, const Eigen::Vector2f *attr)
+{
+    Eigen::Vector2f ret;
+
+    Eigen::Vector3f attrCh0(attr[0][0], attr[1][0], attr[2][0]);
+    Eigen::Vector3f attrCh1(attr[0][1], attr[1][1], attr[2][1]);
+
+    ret[0] = InterpolateAttr(alpha, beta, gamma, view_z, view_pos_z, attrCh0);
+    ret[1] = InterpolateAttr(alpha, beta, gamma, view_z, view_pos_z, attrCh1);
+    return ret;
+}
+
+Eigen::Vector3f GetAttr3(float alpha, float beta, float gamma, float view_z, const Eigen::Vector3f &view_pos_z, const Eigen::Vector3f *attr)
+{
+    Eigen::Vector3f ret;
+
+    Eigen::Vector3f attrCh0(attr[0][0], attr[1][0], attr[2][0]);
+    Eigen::Vector3f attrCh1(attr[0][1], attr[1][1], attr[2][1]);
+    Eigen::Vector3f attrCh2(attr[0][2], attr[1][2], attr[2][2]);
+
+    ret[0] = InterpolateAttr(alpha, beta, gamma, view_z, view_pos_z, attrCh0);
+    ret[1] = InterpolateAttr(alpha, beta, gamma, view_z, view_pos_z, attrCh1);
+    ret[2] = InterpolateAttr(alpha, beta, gamma, view_z, view_pos_z, attrCh2);
+    return ret;
+}
+
+
 //Screen space rasterization
 void rst::rasterizer::rasterize_triangle(const Triangle& t, const std::array<Eigen::Vector3f, 3>& view_pos) 
 {
@@ -280,7 +336,51 @@ void rst::rasterizer::rasterize_triangle(const Triangle& t, const std::array<Eig
     // Use: Instead of passing the triangle's color directly to the frame buffer, pass the color to the shaders first to get the final color;
     // Use: auto pixel_color = fragment_shader(payload);
 
- 
+    Eigen::Vector2i min, max;
+    GetBoundingBox(min, max, t); //计算三角形的包围盒
+
+    // printf("%d,%d %d,%d \n", min.x(), min.y(), max.x(), max.y());
+
+    for (int x = min.x(); x < max.x(); ++x) {
+        for (int y = min.y(); y < max.y(); ++y) {
+            Eigen::Vector3f point(x + 0.5, y + 0.5, 0.0f); // +0.5以便取像素的中心位置
+            if (!insideTriangle(point.x(), point.y(), t.v))
+                continue;
+
+            // 计算点point在2D屏幕空间下的重心坐标
+            float alpha, beta, gamma;
+            std::tie(alpha, beta, gamma) = computeBarycentric2D(point.x(), point.y(), t.v);
+
+            Eigen::Vector3f view_pos_z(t.v[0].w(), t.v[1].w(), t.v[2].w());
+            Eigen::Vector3f screen_z(t.v[0].z(), t.v[1].z(), t.v[2].z());
+            // 计算点point在VIEW SPACE下的Z值
+            float view_z = GetViewSpaceZ(alpha, beta, gamma, view_pos_z); 
+            // 计算NDC下的Z值，这里是把NDC下的Z值当做属性看待，然后进行线性插值
+            float z_buffer = InterpolateAttr(alpha, beta, gamma, view_z, view_pos_z, screen_z);
+
+            if (z_buffer < depth_buf[get_index(x, y)]) {
+                depth_buf[get_index(x, y)] = z_buffer;
+
+                // 颜色插值
+                Eigen::Vector3f color = GetAttr3(alpha, beta, gamma, view_z, view_pos_z, t.color);
+
+                // 法线插值
+                Eigen::Vector3f normal = GetAttr3(alpha, beta, gamma, view_z, view_pos_z, t.normal).normalized();
+
+                // 纹理坐标插值
+                Eigen::Vector2f texcoords = GetAttr2(alpha, beta, gamma, view_z, view_pos_z, t.tex_coords);
+
+                // view空间下坐标插值
+                Eigen::Vector3f shadingcoords = GetAttr3(alpha, beta, gamma, view_z, view_pos_z, view_pos.data());
+
+                fragment_shader_payload payload(color, normal, texcoords, &*texture);
+                payload.view_pos = shadingcoords;
+                Eigen::Vector3f pixel_color = fragment_shader(payload);
+
+                set_pixel(Vector2i{point.x(), point.y()}, pixel_color);
+            }
+        }
+    }
 }
 
 void rst::rasterizer::set_model(const Eigen::Matrix4f& m)
