@@ -68,7 +68,7 @@ Eigen::Vector3f vertex_shader(const vertex_shader_payload& payload)
     return payload.position;
 }
 
-// 法线向量作为颜色值
+// 法线向量转为颜色值（即法线图）:  normal_rgb = (normal + 1.0) / 2.0
 Eigen::Vector3f normal_fragment_shader(const fragment_shader_payload& payload)
 {
     Eigen::Vector3f return_color = (payload.normal.head<3>().normalized() + Eigen::Vector3f(1.0f, 1.0f, 1.0f)) / 2.f;
@@ -270,6 +270,25 @@ Eigen::Vector3f bump_fragment_shader(const fragment_shader_payload& payload)
     // Vector ln = (-dU, -dV, 1)
     // Normal n = normalize(TBN * ln)
 
+    Texture myTex = *(payload.texture);
+    float u = payload.tex_coords.x();
+    float v = payload.tex_coords.y();
+    float h = myTex.height;
+    float w = myTex.width;
+
+    Eigen::Vector3f n = normal;
+    float x = n.x(), y = n.y(), z = n.z();
+
+    Eigen::Vector3f t = {x*y/sqrt(x*x+z*z), sqrt(x*x+z*z), z*y/sqrt(x*x+z*z)};
+    Eigen::Vector3f b = n.cross(t);
+    Eigen::Matrix3f TBN ;
+    TBN << t, b, n;
+    
+    float dU = kh * kn * (myTex.getColor(u+1/w,v).norm()-myTex.getColor(u,v).norm());
+    float dV = kh * kn * (myTex.getColor(u,v+1/h).norm()-myTex.getColor(u,v).norm());
+    Eigen::Vector3f ln = {-dU, -dV, 1};
+    normal = (TBN * ln).normalized();
+
 
     Eigen::Vector3f result_color = {0, 0, 0};
     result_color = normal;
@@ -307,7 +326,7 @@ int main(int argc, const char** argv)
 
     rst::rasterizer r(700, 700);
 
-    // auto texture_path = "spot_texture_small.png";
+    // auto texture_path = "spot_texture.png";
     // r.set_texture(Texture(obj_path + texture_path));
 
     std::function<Eigen::Vector3f(fragment_shader_payload)> active_shader = bump_fragment_shader;
@@ -338,6 +357,8 @@ int main(int argc, const char** argv)
         {
             std::cout << "Rasterizing using the bump shader\n";
             active_shader = bump_fragment_shader;
+            auto texture_path = "hmap.jpg";
+            r.set_texture(Texture(obj_path + texture_path));
         }
         else if (argc == 3 && std::string(argv[2]) == "displacement")
         {
