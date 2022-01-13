@@ -11,7 +11,7 @@ inline float deg2rad(const float &deg)
 Vector3f reflect(const Vector3f &I, const Vector3f &N)
 {
     return I - 2 * dotProduct(I, N) * N;
-}
+} 
 
 // [comment]
 // Compute refraction direction using Snell's law
@@ -38,7 +38,7 @@ Vector3f refract(const Vector3f &I, const Vector3f &N, const float &ior)
 }
 
 // [comment]
-// Compute Fresnel equation
+// Compute Fresnel equation   菲涅尔方程
 //
 // \param I is the incident view direction
 //
@@ -137,7 +137,7 @@ Vector3f castRay(
         Vector2f st; // st coordinates
         payload->hit_obj->getSurfaceProperties(hitPoint, dir, payload->index, payload->uv, N, st);
         switch (payload->hit_obj->materialType) {
-            case REFLECTION_AND_REFRACTION:
+            case REFLECTION_AND_REFRACTION: //反射和折射
             {
                 Vector3f reflectionDirection = normalize(reflect(dir, N));
                 Vector3f refractionDirection = normalize(refract(dir, N, payload->hit_obj->ior));
@@ -153,7 +153,7 @@ Vector3f castRay(
                 hitColor = reflectionColor * kr + refractionColor * (1 - kr);
                 break;
             }
-            case REFLECTION:
+            case REFLECTION: //反射
             {
                 float kr = fresnel(dir, N, payload->hit_obj->ior);
                 Vector3f reflectionDirection = reflect(dir, N);
@@ -215,6 +215,11 @@ void Renderer::Render(const Scene& scene)
     float scale = std::tan(deg2rad(scene.fov * 0.5f));
     float imageAspectRatio = scene.width / (float)scene.height;
 
+    // OpenGL投影坐标系，透视投影近平面的Z值为-1.0，fov为垂直方向(y)的可视角度
+    float z_near = -1.0f;
+    float persp_height = scale * (-z_near);
+    float persp_width  = persp_height * imageAspectRatio;
+
     // Use this variable as the eye position to start your rays.
     Vector3f eye_pos(0);
     int m = 0;
@@ -228,9 +233,14 @@ void Renderer::Render(const Scene& scene)
             // TODO: Find the x and y positions of the current pixel to get the direction
             // vector that passes through it.
             // Also, don't forget to multiply both of them with the variable *scale*, and
-            // x (horizontal) variable with the *imageAspectRatio*            
+            // x (horizontal) variable with the *imageAspectRatio*   
+            x = i * persp_width / scene.width;
+            y = (scene.height-1 - j) * persp_height / scene.height;
 
-            Vector3f dir = Vector3f(x, y, -1); // Don't forget to normalize this direction!
+            x -= persp_width/2.0;
+            y -= persp_height/2.0;
+
+            Vector3f dir = Vector3f(x, y, z_near); // Don't forget to normalize this direction!
             framebuffer[m++] = castRay(eye_pos, dir, scene, 0);
         }
         UpdateProgress(j / (float)scene.height);
