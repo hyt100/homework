@@ -12,7 +12,7 @@ int main()
     Scene scene(1280, 960);
 
     auto sph1 = std::make_unique<Sphere>(Vector3f(-1, 0, -12), 2);
-    sph1->materialType = DIFFUSE_AND_GLOSSY;
+    sph1->materialType = DIFFUSE_AND_GLOSSY; //phone光照模型，不考虑光线弹射
     sph1->diffuseColor = Vector3f(0.6, 0.7, 0.8);
 
     auto sph2 = std::make_unique<Sphere>(Vector3f(0.5, -0.5, -8), 1.5);
@@ -26,7 +26,7 @@ int main()
     uint32_t vertIndex[6] = {0, 1, 3, 1, 2, 3};
     Vector2f st[4] = {{0, 0}, {1, 0}, {1, 1}, {0, 1}};
     auto mesh = std::make_unique<MeshTriangle>(verts, vertIndex, 2, st);
-    mesh->materialType = DIFFUSE_AND_GLOSSY;
+    mesh->materialType = DIFFUSE_AND_GLOSSY; //phone光照模型，不考虑光线弹射
 
     scene.Add(std::move(mesh));
     scene.Add(std::make_unique<Light>(Vector3f(-20, 70, 20), 0.5));

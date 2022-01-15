@@ -33,9 +33,9 @@ inline bool solveQuadratic(const float& a, const float& b, const float& c, float
 
 enum MaterialType
 {
-    DIFFUSE_AND_GLOSSY,
-    REFLECTION_AND_REFRACTION,
-    REFLECTION
+    DIFFUSE_AND_GLOSSY,   //漫反射、光滑表面 (采用phong光照模型)
+    REFLECTION_AND_REFRACTION, //折射
+    REFLECTION  //反射
 };
 
 inline float get_random_float()

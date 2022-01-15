@@ -12,6 +12,8 @@ bool rayTriangleIntersect(const Vector3f& v0, const Vector3f& v1, const Vector3f
     // origin is *orig* and direction is *dir*)
     // Also don't forget to update tnear, u and v.
 
+    // Möller Trumbore Algorithm算法
+
     Vector3f e1 = v1 - v0;
     Vector3f e2 = v2 - v0;
     Vector3f s = orig - v0;
@@ -19,7 +21,7 @@ bool rayTriangleIntersect(const Vector3f& v0, const Vector3f& v1, const Vector3f
     Vector3f s2 = crossProduct(s, e1);
     float temp = dotProduct(s1, e1);
 
-    if (fabs(temp) < 0.0001)
+    if (fabs(temp) < 0.000001)
         return false;
     
     float t = 1/temp * dotProduct(s2, e2);
@@ -87,18 +89,19 @@ public:
         const Vector3f& v2 = vertices[vertexIndex[index * 3 + 2]];
         Vector3f e0 = normalize(v1 - v0);
         Vector3f e1 = normalize(v2 - v1);
-        N = normalize(crossProduct(e0, e1));
+        N = normalize(crossProduct(e0, e1)); //叉乘得到该点的法线
         const Vector2f& st0 = stCoordinates[vertexIndex[index * 3]];
         const Vector2f& st1 = stCoordinates[vertexIndex[index * 3 + 1]];
         const Vector2f& st2 = stCoordinates[vertexIndex[index * 3 + 2]];
-        st = st0 * (1 - uv.x - uv.y) + st1 * uv.x + st2 * uv.y;
+        st = st0 * (1 - uv.x - uv.y) + st1 * uv.x + st2 * uv.y;  //利用重心坐标插值出该点纹理坐标
     }
 
     Vector3f evalDiffuseColor(const Vector2f& st) const override
     {
         float scale = 5;
+        // fmodf： 浮点数模运算取余数
         float pattern = (fmodf(st.x * scale, 1) > 0.5) ^ (fmodf(st.y * scale, 1) > 0.5);
-        return lerp(Vector3f(0.815, 0.235, 0.031), Vector3f(0.937, 0.937, 0.231), pattern);
+        return lerp(Vector3f(0.815, 0.235, 0.031), Vector3f(0.937, 0.937, 0.231), pattern); //结果是个棋盘格
     }
 
     std::unique_ptr<Vector3f[]> vertices;

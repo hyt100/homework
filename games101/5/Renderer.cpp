@@ -7,13 +7,13 @@
 inline float deg2rad(const float &deg)
 { return deg * M_PI/180.0; }
 
-// Compute reflection direction
+// Compute reflection direction 计算反射的向量
 Vector3f reflect(const Vector3f &I, const Vector3f &N)
 {
     return I - 2 * dotProduct(I, N) * N;
 } 
 
-// [comment]
+// [comment] 计算折射的向量
 // Compute refraction direction using Snell's law
 //
 // We need to handle with care the two possible situations:
@@ -37,29 +37,30 @@ Vector3f refract(const Vector3f &I, const Vector3f &N, const float &ior)
     return k < 0 ? 0 : eta * I + (eta * cosi - sqrtf(k)) * n;
 }
 
-// [comment]
-// Compute Fresnel equation   菲涅尔方程
+// [comment] 计算反射比
+// Compute Fresnel equation   菲涅尔方程: https://zhuanlan.zhihu.com/p/31534769
 //
-// \param I is the incident view direction
+// \param I is the incident view direction 注意I的方向是指向交点
 //
 // \param N is the normal at the intersection point
 //
 // \param ior is the material refractive index
 // [/comment]
+// 返回值是反射比，取值范围是0-1， 为1时表示全反射
 float fresnel(const Vector3f &I, const Vector3f &N, const float &ior)
 {
     float cosi = clamp(-1, 1, dotProduct(I, N));
-    float etai = 1, etat = ior;
-    if (cosi > 0) {  std::swap(etai, etat); }
-    // Compute sini using Snell's law
+    float etai = 1, etat = ior;  //入射：空气折射率为1  折射：物体折射率为ior
+    if (cosi > 0) {  std::swap(etai, etat); }  //默认是从空气中到物体中，如果是从物体折射到空气中，则交换折射率
+    cosi = fabsf(cosi);  //修正入射角的cosine值,因为入射角范围应该是0-90度
+    // Compute sint using Snell's law 斯涅耳定律： sini*etai = sint*etat
     float sint = etai / etat * sqrtf(std::max(0.f, 1 - cosi * cosi));
     // Total internal reflection
-    if (sint >= 1) {
+    if (sint >= 1) {  //折射角为90度，全反射
         return 1;
     }
     else {
         float cost = sqrtf(std::max(0.f, 1 - sint * sint));
-        cosi = fabsf(cosi);
         float Rs = ((etat * cosi) - (etai * cost)) / ((etat * cosi) + (etai * cost));
         float Rp = ((etai * cosi) - (etat * cost)) / ((etai * cosi) + (etat * cost));
         return (Rs * Rs + Rp * Rp) / 2;
@@ -129,15 +130,15 @@ Vector3f castRay(
         return Vector3f(0.0,0.0,0.0);
     }
 
-    Vector3f hitColor = scene.backgroundColor;
-    if (auto payload = trace(orig, dir, scene.get_objects()); payload)
+    Vector3f hitColor = scene.backgroundColor;  //没有交点的，使用背景颜色
+    if (auto payload = trace(orig, dir, scene.get_objects()); payload) //如果找到交点
     {
         Vector3f hitPoint = orig + dir * payload->tNear;
         Vector3f N; // normal
         Vector2f st; // st coordinates
-        payload->hit_obj->getSurfaceProperties(hitPoint, dir, payload->index, payload->uv, N, st);
+        payload->hit_obj->getSurfaceProperties(hitPoint, dir, payload->index, payload->uv, N, st); //获取交点处的属性:法线、纹理坐标
         switch (payload->hit_obj->materialType) {
-            case REFLECTION_AND_REFRACTION: //反射和折射
+            case REFLECTION_AND_REFRACTION: //材质类型：反射和折射
             {
                 Vector3f reflectionDirection = normalize(reflect(dir, N));
                 Vector3f refractionDirection = normalize(refract(dir, N, payload->hit_obj->ior));
@@ -149,21 +150,22 @@ Vector3f castRay(
                                              hitPoint + N * scene.epsilon;
                 Vector3f reflectionColor = castRay(reflectionRayOrig, reflectionDirection, scene, depth + 1);
                 Vector3f refractionColor = castRay(refractionRayOrig, refractionDirection, scene, depth + 1);
-                float kr = fresnel(dir, N, payload->hit_obj->ior);
-                hitColor = reflectionColor * kr + refractionColor * (1 - kr);
+                float kr = fresnel(dir, N, payload->hit_obj->ior); //计算反射系数，即为能量比
+                hitColor = reflectionColor * kr + refractionColor * (1 - kr); //根据反射比，进行加权平均
                 break;
             }
-            case REFLECTION: //反射
+            case REFLECTION: //材质类型：反射
             {
                 float kr = fresnel(dir, N, payload->hit_obj->ior);
                 Vector3f reflectionDirection = reflect(dir, N);
+                // 交点沿着法线方向微小移动是为了什么？ 防止光线打回来造成死循环？
                 Vector3f reflectionRayOrig = (dotProduct(reflectionDirection, N) < 0) ?
                                              hitPoint + N * scene.epsilon :
                                              hitPoint - N * scene.epsilon;
                 hitColor = castRay(reflectionRayOrig, reflectionDirection, scene, depth + 1) * kr;
                 break;
             }
-            default:
+            default: //材质类型：DIFFUSE_AND_GLOSSY  漫反射、光滑表面 (采用phong光照模型)
             {
                 // [comment]
                 // We use the Phong illumation model int the default case. The phong model
@@ -177,14 +179,14 @@ Vector3f castRay(
                 // Loop over all lights in the scene and sum their contribution up
                 // We also apply the lambert cosine law
                 // [/comment]
-                for (auto& light : scene.get_lights()) {
+                for (auto& light : scene.get_lights()) { //遍历光源，计算漫反射和高光
                     Vector3f lightDir = light->position - hitPoint;
                     // square of the distance between hitPoint and the light
                     float lightDistance2 = dotProduct(lightDir, lightDir);
                     lightDir = normalize(lightDir);
                     float LdotN = std::max(0.f, dotProduct(lightDir, N));
                     // is the point in shadow, and is the nearest occluding object closer to the object than the light itself?
-                    auto shadow_res = trace(shadowPointOrig, lightDir, scene.get_objects());
+                    auto shadow_res = trace(shadowPointOrig, lightDir, scene.get_objects());  //求交，如果有交点且交点在和光源连线的中间，则该点在阴影中
                     bool inShadow = shadow_res && (shadow_res->tNear * shadow_res->tNear < lightDistance2);
 
                     lightAmt += inShadow ? 0 : light->intensity * LdotN;
