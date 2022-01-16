@@ -94,23 +94,29 @@ class Bounds3
         float t_exit = std::numeric_limits<float>::max();
         float near, far;
 
-        near = (pMin.x - ray.origin.x) * ray.direction_inv.x;
-        far  = (pMax.x - ray.origin.x) * ray.direction_inv.x;
-        if (ray.dirIsNeg[0]) std::swap(near, far);   //注意射线的方向是否朝着负轴，负轴的near和far计算是相反的
-        t_enter = std::max(t_enter, near);
-        t_exit  = std::min(t_exit, far);
+        if (fabs(ray.direction.x) > 0.00001) { //注意射线x坐标为0时，与yoz平面平行，该组“对面”没有交点
+            near = (pMin.x - ray.origin.x) * ray.direction_inv.x;
+            far  = (pMax.x - ray.origin.x) * ray.direction_inv.x;
+            if (ray.dirIsNeg[0]) std::swap(near, far);   //注意射线的方向是否朝着负轴，负轴的near和far计算是相反的
+            t_enter = std::max(t_enter, near);
+            t_exit  = std::min(t_exit, far);
+        }
 
-        near = (pMin.y - ray.origin.y) * ray.direction_inv.y;
-        far  = (pMax.y - ray.origin.y) * ray.direction_inv.y;
-        if (ray.dirIsNeg[1]) std::swap(near, far);
-        t_enter = std::max(t_enter, near);
-        t_exit  = std::min(t_exit, far);
+        if (fabs(ray.direction.y) > 0.00001) {
+            near = (pMin.y - ray.origin.y) * ray.direction_inv.y;
+            far  = (pMax.y - ray.origin.y) * ray.direction_inv.y;
+            if (ray.dirIsNeg[1]) std::swap(near, far);
+            t_enter = std::max(t_enter, near);
+            t_exit  = std::min(t_exit, far);
+        }
 
-        near = (pMin.z - ray.origin.z) * ray.direction_inv.z;
-        far  = (pMax.z - ray.origin.z) * ray.direction_inv.z;
-        if (ray.dirIsNeg[2]) std::swap(near, far);
-        t_enter = std::max(t_enter, near);
-        t_exit  = std::min(t_exit, far);
+        if (fabs(ray.direction.z) > 0.00001) {
+            near = (pMin.z - ray.origin.z) * ray.direction_inv.z;
+            far  = (pMax.z - ray.origin.z) * ray.direction_inv.z;
+            if (ray.dirIsNeg[2]) std::swap(near, far);
+            t_enter = std::max(t_enter, near);
+            t_exit  = std::min(t_exit, far);
+        }
 
         if (t_enter < t_exit && t_enter >= 0)
             return true;

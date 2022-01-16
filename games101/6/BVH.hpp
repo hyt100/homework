@@ -25,7 +25,7 @@ class BVHAccel {
 
 public:
     // BVHAccel Public Types
-    enum class SplitMethod { NAIVE, SAH };
+    enum class SplitMethod { NAIVE, SAH }; //NAIVE: 简单划分   SAH: Surface Area Heuristic
 
     // BVHAccel Public Methods
     BVHAccel(std::vector<Object*> p, int maxPrimsInNode = 1, SplitMethod splitMethod = SplitMethod::NAIVE);
@@ -51,6 +51,7 @@ struct BVHBuildNode {
     BVHBuildNode *left;
     BVHBuildNode *right;
     Object* object;
+    // std::vector<Object*> objects;
 
 public:
     int splitAxis=0, firstPrimOffset=0, nPrimitives=0;

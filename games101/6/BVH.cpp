@@ -30,9 +30,9 @@ BVHBuildNode* BVHAccel::recursiveBuild(std::vector<Object*> objects)
     BVHBuildNode* node = new BVHBuildNode();
 
     // Compute bounds of all primitives in BVH node
-    Bounds3 bounds;
-    for (int i = 0; i < objects.size(); ++i)
-        bounds = Union(bounds, objects[i]->getBounds());
+    // Bounds3 bounds;
+    // for (int i = 0; i < objects.size(); ++i)
+    //     bounds = Union(bounds, objects[i]->getBounds());
     if (objects.size() == 1) {
         // Create leaf _BVHBuildNode_
         node->bounds = objects[0]->getBounds();
@@ -52,7 +52,7 @@ BVHBuildNode* BVHAccel::recursiveBuild(std::vector<Object*> objects)
         Bounds3 centroidBounds; //由每个对象包围盒的中心点，组成的新的包围盒
         for (int i = 0; i < objects.size(); ++i)
             centroidBounds = Union(centroidBounds, objects[i]->getBounds().Centroid());
-        int dim = centroidBounds.maxExtent();
+        int dim = centroidBounds.maxExtent(); //判断包围盒的最长的边
         switch (dim) {
         case 0:
             std::sort(objects.begin(), objects.end(), [](auto f1, auto f2) {
