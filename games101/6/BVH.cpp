@@ -44,6 +44,7 @@ BVHBuildNode* BVHAccel::recursiveBuild(std::vector<Object*> objects)
     else if (objects.size() == 2) {
         node->left = recursiveBuild(std::vector{objects[0]});
         node->right = recursiveBuild(std::vector{objects[1]});
+        node->splitAxis = 0;
 
         node->bounds = Union(node->left->bounds, node->right->bounds);
         return node;
@@ -73,6 +74,7 @@ BVHBuildNode* BVHAccel::recursiveBuild(std::vector<Object*> objects)
             });
             break;
         }
+        node->splitAxis = dim; //记录此次划分时轴的方向
 
         auto beginning = objects.begin();
         auto middling = objects.begin() + (objects.size() / 2);
@@ -92,26 +94,41 @@ BVHBuildNode* BVHAccel::recursiveBuild(std::vector<Object*> objects)
     return node;
 }
 
-Intersection BVHAccel::Intersect(const Ray& ray) const
+Intersection BVHAccel::Intersect(const Ray& ray)
 {
     Intersection isect;
     if (!root)
         return isect;
-    isect = BVHAccel::getIntersection(root, ray);
+    Ray ray_copy = ray;
+    isect = BVHAccel::getIntersection(root, ray_copy);
     return isect;
 }
 
-Intersection BVHAccel::getIntersection(BVHBuildNode* node, const Ray& ray) const
+Intersection BVHAccel::getIntersection(BVHBuildNode* node, Ray& ray)
 {
     // TODO Traverse the BVH to find intersection
-    if (!node->bounds.IntersectP(ray))
+    float t;
+    if (!node->bounds.IntersectP(ray, t) || t > ray.t_max) { //和包围盒相交，但t很大也不必继续
         return Intersection();
+    }
     
     if (node->left == nullptr && node->right == nullptr) {
-        return node->object->getIntersection(ray);
+        Intersection isect = node->object->getIntersection(ray);
+        if (isect.happened && isect.distance < ray.t_max) {
+            ray.t_max = isect.distance; //提升效率：每次检测都修改ray的t_max参数，距离超过t_max包围盒不需要继续检测了
+        }
+        return isect;
     }
 
-    Intersection isect_left = getIntersection(node->left, ray);
-    Intersection isect_right = getIntersection(node->right, ray);
+    // 提升效率: 在遍历非叶子节点时，要考虑轴的划分方向和ray的方向(用于配合t_max加速),
+    //    如果ray和axis方向是正数时，就按child1->child2的顺序遍历，否则按child2->child1的顺序
+    Intersection isect_left, isect_right;
+    if (ray.dirIsNeg[node->splitAxis]) {
+        isect_right = getIntersection(node->right, ray);
+        isect_left = getIntersection(node->left, ray);
+    } else {
+        isect_left = getIntersection(node->left, ray);
+        isect_right = getIntersection(node->right, ray);
+    }
     return isect_left.distance <= isect_right.distance ? isect_left : isect_right;
 }

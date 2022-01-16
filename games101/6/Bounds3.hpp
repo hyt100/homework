@@ -84,7 +84,7 @@ class Bounds3
         return (i == 0) ? pMin : pMax;
     }
 
-    inline bool IntersectP(const Ray& ray) const //射线和包围盒相交测试
+    inline bool IntersectP(const Ray& ray, float &t) const //射线和包围盒相交测试
     {
         // invDir: ray direction(x,y,z), invDir=(1.0/x,1.0/y,1.0/z), use this because Multiply is faster that Division
         // dirIsNeg: ray direction(x,y,z), dirIsNeg=[int(x<0),int(y<0),int(z<0)], use this to simplify your logic
@@ -118,10 +118,15 @@ class Bounds3
             t_exit  = std::min(t_exit, far);
         }
 
-        if (t_enter < t_exit && t_enter >= 0)
+        if (t_enter < t_exit && t_exit >= 0) {
+            if (t_enter <= 0) // The ray’s origin is inside the box
+                t = t_exit; 
+            else
+                t = t_enter;
             return true;
-        else
+        } else {
             return false;
+        }
     } 
 };
 
