@@ -49,10 +49,9 @@ BVHBuildNode* BVHAccel::recursiveBuild(std::vector<Object*> objects)
         return node;
     }
     else {
-        Bounds3 centroidBounds;
+        Bounds3 centroidBounds; //由每个对象包围盒的中心点，组成的新的包围盒
         for (int i = 0; i < objects.size(); ++i)
-            centroidBounds =
-                Union(centroidBounds, objects[i]->getBounds().Centroid());
+            centroidBounds = Union(centroidBounds, objects[i]->getBounds().Centroid());
         int dim = centroidBounds.maxExtent();
         switch (dim) {
         case 0:
@@ -105,5 +104,14 @@ Intersection BVHAccel::Intersect(const Ray& ray) const
 Intersection BVHAccel::getIntersection(BVHBuildNode* node, const Ray& ray) const
 {
     // TODO Traverse the BVH to find intersection
+    if (!node->bounds.IntersectP(ray))
+        return Intersection();
+    
+    if (node->left == nullptr && node->right == nullptr) {
+        return node->object->getIntersection(ray);
+    }
 
+    Intersection isect_left = getIntersection(node->left, ray);
+    Intersection isect_right = getIntersection(node->right, ray);
+    return isect_left.distance <= isect_right.distance ? isect_left : isect_right;
 }

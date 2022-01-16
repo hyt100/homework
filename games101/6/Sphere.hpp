@@ -30,14 +30,13 @@ public:
     }
     bool intersect(const Ray& ray, float &tnear, uint32_t &index) const
     {
-        // analytic solution
+        // analytic solution 解析解法
         Vector3f L = ray.origin - center;
         float a = dotProduct(ray.direction, ray.direction);
         float b = 2 * dotProduct(ray.direction, L);
         float c = dotProduct(L, L) - radius2;
         float t0, t1;
-        if (!
-        solveQuadratic(a, b, c, t0, t1)) return false;
+        if (!solveQuadratic(a, b, c, t0, t1)) return false;
         if (t0 < 0) t0 = t1;
         if (t0 < 0) return false;
         tnear = t0;
@@ -71,7 +70,7 @@ public:
     Vector3f evalDiffuseColor(const Vector2f &st)const {
         return m->getColor();
     }
-    Bounds3 getBounds(){
+    Bounds3 getBounds(){ //球体的包围盒：原点与球心连线，直线上的两个交点构成包围盒
         return Bounds3(Vector3f(center.x-radius, center.y-radius, center.z-radius),
                        Vector3f(center.x+radius, center.y+radius, center.z+radius));
     }

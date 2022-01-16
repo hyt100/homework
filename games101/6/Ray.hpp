@@ -8,7 +8,8 @@
 struct Ray{
     //Destination = origin + t*direction
     Vector3f origin;
-    Vector3f direction, direction_inv;
+    Vector3f direction, direction_inv;  //direction_inv是为了预先算好，避免除法后续多次计算
+    std::array<int, 3> dirIsNeg;
     double t;//transportation time,
     double t_min, t_max;
 
@@ -16,7 +17,7 @@ struct Ray{
         direction_inv = Vector3f(1./direction.x, 1./direction.y, 1./direction.z);
         t_min = 0.0;
         t_max = std::numeric_limits<double>::max();
-
+        dirIsNeg = std::array<int, 3>{int(direction.x < 0), int(direction.y < 0), int(direction.z < 0)};
     }
 
     Vector3f operator()(double t) const{return origin+direction*t;}

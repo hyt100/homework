@@ -48,21 +48,21 @@ bool Scene::trace(
 // the amount of reflection and refractin depending on the surface normal, incident view direction
 // and surface refractive index).
 //
-// If the surface is duffuse/glossy we use the Phong illumation model to compute the color
+// If the surface is diffuse/glossy we use the Phong illumation model to compute the color
 // at the intersection point.
 Vector3f Scene::castRay(const Ray &ray, int depth) const
 {
     if (depth > this->maxDepth) {
         return Vector3f(0.0,0.0,0.0);
     }
-    Intersection intersection = Scene::intersect(ray);
+    Intersection intersection = Scene::intersect(ray); //射线和场景求交
     Material *m = intersection.m;
     Object *hitObject = intersection.obj;
     Vector3f hitColor = this->backgroundColor;
 //    float tnear = kInfinity;
     Vector2f uv;
     uint32_t index = 0;
-    if(intersection.happened) {
+    if(intersection.happened) { //如果击中物体
 
         Vector3f hitPoint = intersection.coords;
         Vector3f N = intersection.normal; // normal

@@ -56,10 +56,43 @@ public:
         normal = normalize(crossProduct(e1, e2));
     }
 
-    bool intersect(const Ray& ray) override;
-    bool intersect(const Ray& ray, float& tnear,
-                   uint32_t& index) const override;
-    Intersection getIntersection(Ray ray) override;
+    bool intersect(const Ray& ray) override
+    { return true; }
+    bool intersect(const Ray& ray, float& tnear, uint32_t& index) const override
+    { return false; }
+    inline Intersection getIntersection(Ray ray) override
+    {
+        Intersection inter;
+
+        if (dotProduct(ray.direction, normal) > 0)  //光线在三角形的背面
+            return inter;
+        double u, v, t_tmp = 0;
+        Vector3f pvec = crossProduct(ray.direction, e2);
+        double det = dotProduct(e1, pvec);
+        if (fabs(det) < EPSILON)
+            return inter;
+
+        double det_inv = 1. / det;
+        Vector3f tvec = ray.origin - v0;
+        u = dotProduct(tvec, pvec) * det_inv;
+        if (u < 0 || u > 1)
+            return inter;
+        Vector3f qvec = crossProduct(tvec, e1);
+        v = dotProduct(ray.direction, qvec) * det_inv;
+        if (v < 0 || u + v > 1)
+            return inter;
+        t_tmp = dotProduct(e2, qvec) * det_inv;
+
+        // TODO find ray triangle intersection
+        inter.happened = true;
+        inter.coords = Vector3f(ray.origin + ray.direction * t_tmp);
+        inter.normal = normal;
+        inter.distance = t_tmp;
+        inter.obj = this;
+        inter.m = this->m;
+
+        return inter;
+    }
     void getSurfaceProperties(const Vector3f& P, const Vector3f& I,
                               const uint32_t& index, const Vector2f& uv,
                               Vector3f& N, Vector2f& st) const override
@@ -68,8 +101,13 @@ public:
         //        throw std::runtime_error("triangle::getSurfaceProperties not
         //        implemented.");
     }
-    Vector3f evalDiffuseColor(const Vector2f&) const override;
-    Bounds3 getBounds() override;
+    inline Vector3f evalDiffuseColor(const Vector2f&) const override
+    {
+        return Vector3f(0.5, 0.5, 0.5);
+    }
+
+    inline Bounds3 getBounds() override
+    { return Union(Bounds3(v0, v1), v2); }
 };
 
 class MeshTriangle : public Object
@@ -83,6 +121,7 @@ public:
         assert(loader.LoadedMeshes.size() == 1);
         auto mesh = loader.LoadedMeshes[0];
 
+        // mesh的最小最大的坐标，用于构建整个mesh的包围盒
         Vector3f min_vert = Vector3f{std::numeric_limits<float>::infinity(),
                                      std::numeric_limits<float>::infinity(),
                                      std::numeric_limits<float>::infinity()};
@@ -94,8 +133,7 @@ public:
             for (int j = 0; j < 3; j++) {
                 auto vert = Vector3f(mesh.Vertices[i + j].Position.X,
                                      mesh.Vertices[i + j].Position.Y,
-                                     mesh.Vertices[i + j].Position.Z) *
-                            60.f;
+                                     mesh.Vertices[i + j].Position.Z) * 60.f;
                 face_vertices[j] = vert;
 
                 min_vert = Vector3f(std::min(min_vert.x, vert.x),
@@ -106,15 +144,12 @@ public:
                                     std::max(max_vert.z, vert.z));
             }
 
-            auto new_mat =
-                new Material(MaterialType::DIFFUSE_AND_GLOSSY,
-                             Vector3f(0.5, 0.5, 0.5), Vector3f(0, 0, 0));
+            auto new_mat = new Material(MaterialType::DIFFUSE_AND_GLOSSY, Vector3f(0.5, 0.5, 0.5), Vector3f(0, 0, 0));
             new_mat->Kd = 0.6;
             new_mat->Ks = 0.0;
             new_mat->specularExponent = 0;
 
-            triangles.emplace_back(face_vertices[0], face_vertices[1],
-                                   face_vertices[2], new_mat);
+            triangles.emplace_back(face_vertices[0], face_vertices[1], face_vertices[2], new_mat);
         }
 
         bounding_box = Bounds3(min_vert, max_vert);
@@ -198,48 +233,3 @@ public:
 
     Material* m;
 };
-
-inline bool Triangle::intersect(const Ray& ray) { return true; }
-inline bool Triangle::intersect(const Ray& ray, float& tnear,
-                                uint32_t& index) const
-{
-    return false;
-}
-
-inline Bounds3 Triangle::getBounds() { return Union(Bounds3(v0, v1), v2); }
-
-inline Intersection Triangle::getIntersection(Ray ray)
-{
-    Intersection inter;
-
-    if (dotProduct(ray.direction, normal) > 0)
-        return inter;
-    double u, v, t_tmp = 0;
-    Vector3f pvec = crossProduct(ray.direction, e2);
-    double det = dotProduct(e1, pvec);
-    if (fabs(det) < EPSILON)
-        return inter;
-
-    double det_inv = 1. / det;
-    Vector3f tvec = ray.origin - v0;
-    u = dotProduct(tvec, pvec) * det_inv;
-    if (u < 0 || u > 1)
-        return inter;
-    Vector3f qvec = crossProduct(tvec, e1);
-    v = dotProduct(ray.direction, qvec) * det_inv;
-    if (v < 0 || u + v > 1)
-        return inter;
-    t_tmp = dotProduct(e2, qvec) * det_inv;
-
-    // TODO find ray triangle intersection
-
-
-
-
-    return inter;
-}
-
-inline Vector3f Triangle::evalDiffuseColor(const Vector2f&) const
-{
-    return Vector3f(0.5, 0.5, 0.5);
-}

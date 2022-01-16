@@ -66,7 +66,7 @@ float fresnel(const Vector3f &I, const Vector3f &N, const float &ior)
         return (Rs * Rs + Rp * Rp) / 2;
     }
     // As a consequence of the conservation of energy, transmittance is given by:
-    // kt = 1 - kr;
+    // kt = 1 - kr; //根据能量守恒，反射占比kr + 折射占比 = 1
 }
 
 // [comment]
