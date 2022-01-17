@@ -94,7 +94,10 @@ class Bounds3
         float t_exit = std::numeric_limits<float>::max();
         float near, far;
 
-        if (fabs(ray.direction.x) > 0.00001) { //注意射线x坐标为0时，与yoz平面平行，该组“对面”没有交点
+        if (fabs(ray.direction.x) < 0.00001) { //注意射线x坐标为0时，与yoz平面平行，该组“对面”没有交点；和一组“对面”平行，就降至二维，两对就降至一维。
+            if (ray.origin.x < pMin.x || ray.origin.x > pMax.x) //平行则光线x值介于pMin/pMax中间
+                return false;
+        } else {
             near = (pMin.x - ray.origin.x) * ray.direction_inv.x;
             far  = (pMax.x - ray.origin.x) * ray.direction_inv.x;
             if (ray.dirIsNeg[0]) std::swap(near, far);   //注意射线的方向是否朝着负轴，负轴的near和far计算是相反的
@@ -102,7 +105,10 @@ class Bounds3
             t_exit  = std::min(t_exit, far);
         }
 
-        if (fabs(ray.direction.y) > 0.00001) {
+        if (fabs(ray.direction.y) < 0.00001) {
+            if (ray.origin.y < pMin.y || ray.origin.y > pMax.y)
+                return false;
+        } else {
             near = (pMin.y - ray.origin.y) * ray.direction_inv.y;
             far  = (pMax.y - ray.origin.y) * ray.direction_inv.y;
             if (ray.dirIsNeg[1]) std::swap(near, far);
@@ -110,7 +116,10 @@ class Bounds3
             t_exit  = std::min(t_exit, far);
         }
 
-        if (fabs(ray.direction.z) > 0.00001) {
+        if (fabs(ray.direction.z) < 0.00001) {
+            if (ray.origin.z < pMin.z || ray.origin.z > pMax.z)
+                return false;
+        } else {
             near = (pMin.z - ray.origin.z) * ray.direction_inv.z;
             far  = (pMax.z - ray.origin.z) * ray.direction_inv.z;
             if (ray.dirIsNeg[2]) std::swap(near, far);
@@ -120,7 +129,7 @@ class Bounds3
 
         if (t_enter < t_exit && t_exit >= 0) {
             if (t_enter <= 0) // The ray’s origin is inside the box
-                t = t_exit; 
+                t = 0; 
             else
                 t = t_enter;
             return true;
