@@ -92,11 +92,19 @@ BVHBuildNode* BVHAccel::recursiveBuild(std::vector<Object*> objects)
     return node;
 }
 
+// https://www.cnblogs.com/lookof/p/3546320.html
+// https://blog.csdn.net/qq_39300235/article/details/106999514
+// https://blog.csdn.net/air_liang1212/article/details/105520107
+// https://www.cnblogs.com/wickedpriest/p/12269564.html
 BVHBuildNode* BVHAccel::recursiveBuildWithSAH(std::vector<Object*> objects)
 {
     BVHBuildNode* node = new BVHBuildNode();
+    // Compute bounds of all primitives in BVH node
+    Bounds3 bounds;
+    for (int i = 0; i < objects.size(); ++i)
+        bounds = Union(bounds, objects[i]->getBounds());
 
-
+    
 
     return node;
 }

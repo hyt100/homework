@@ -32,8 +32,8 @@ public:
     Bounds3 WorldBound() const;
     ~BVHAccel();
 
-    Intersection Intersect(const Ray &ray) const;
-    Intersection getIntersection(BVHBuildNode* node, const Ray& ray)const;
+    Intersection Intersect(const Ray &ray);
+    Intersection getIntersection(BVHBuildNode* node, Ray& ray);
     bool IntersectP(const Ray &ray) const;
     BVHBuildNode* root;
 
@@ -53,7 +53,8 @@ struct BVHBuildNode {
     Bounds3 bounds;
     BVHBuildNode *left;
     BVHBuildNode *right;
-    Object* object;
+    // Object* object;
+    std::vector<Object*> objects;
     float area;
 
 public:
@@ -62,7 +63,7 @@ public:
     BVHBuildNode(){
         bounds = Bounds3();
         left = nullptr;right = nullptr;
-        object = nullptr;
+        // object = nullptr;
     }
 };
 
