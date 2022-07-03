@@ -75,7 +75,7 @@ Vector3f Scene::castRay(const Ray &ray, int depth) const
                 Vector3f reflectionDirection = normalize(reflect(ray.direction, N));
                 Vector3f refractionDirection = normalize(refract(ray.direction, N, m->ior));
                 Vector3f reflectionRayOrig = (dotProduct(reflectionDirection, N) < 0) ?
-                                             hitPoint - N * EPSILON :
+                                             hitPoint - N * EPSILON :  // 这里将hitPoint往法线方向移动一个微小量，是为了防止求交时击中自己吗？
                                              hitPoint + N * EPSILON;
                 Vector3f refractionRayOrig = (dotProduct(refractionDirection, N) < 0) ?
                                              hitPoint - N * EPSILON :
