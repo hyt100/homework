@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Basic skeleton</title>
+<body>
+    <canvas id="canvas" width=600 height=600 style="border: 1px grey solid">
+    <script>
+        // ======================================================================
+        //  Low-level canvas access. 
+        // ======================================================================
+        var canvas = document.getElementById("canvas");
+        var canvas_context = canvas.getContext("2d");
+        var canvas_buffer = canvas_context.getImageData(0, 0, canvas.width, canvas.height);
+        var canvas_pitch = canvas_buffer.width * 4;
+      
+        // The PutPixel() function.
+        var PutPixel = function(x, y, color) {
+            x = canvas.width/2 + x;
+            y = canvas.height/2 - y - 1;
+        
+            if (x < 0 || x >= canvas.width || y < 0 || y >= canvas.height) {
+                return;
+            }
+        
+            var offset = 4*x + canvas_pitch*y;
+            canvas_buffer.data[offset++] = color[0];
+            canvas_buffer.data[offset++] = color[1];
+            canvas_buffer.data[offset++] = color[2];
+            canvas_buffer.data[offset++] = 255; // Alpha = 255 (full opacity)
+        }
+      
+        // Displays the contents of the offscreen buffer into the canvas.
+        var UpdateCanvas = function() {
+            canvas_context.putImageData(canvas_buffer, 0, 0);
+        }
+      
+        // ======================================================================
+        //   User Application (在此处实现程序)
+        // ======================================================================
+        var background_color = [0, 80, 80];
+        
+        // Main loop.
+        for (var x = -canvas.width/2; x < canvas.width/2; x++) {
+            for (var y = -canvas.height/2; y < canvas.height/2; y++) {
+                var color = background_color;
+                PutPixel(x, y, color);
+            }
+        }
+        
+        UpdateCanvas();
+        //======================================================================
+    </script>      
+</body>
+
+</html>
